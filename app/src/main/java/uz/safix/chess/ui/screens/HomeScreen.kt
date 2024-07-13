@@ -10,11 +10,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.colorResource
@@ -23,6 +26,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import uz.safix.chess.R
+import uz.safix.chess.model.DifficultyLevel
+import uz.safix.chess.ui.components.ChooseOptionDialog
 
 /**
  * Created by: androdev
@@ -33,9 +38,13 @@ import uz.safix.chess.R
 
 @Composable
 fun HomeScreen(
-    onPlayWithComputer: () -> Unit
+    onPlayWithComputer: (level: DifficultyLevel) -> Unit,
+    onRateApp: () -> Unit,
+    onContactAuthor: () -> Unit,
+    onExit: () -> Unit
 ) {
-    val bgImage = painterResource(id = R.drawable.home_background)
+    var showDifficultyLevelDialog by remember { mutableStateOf(false) }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -45,14 +54,14 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter),
-            painter = bgImage,
+            painter = painterResource(id = R.drawable.home_background),
             contentDescription = null
         )
         Column(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 32.dp)
         ) {
             Button(
-                onClick = onPlayWithComputer,
+                onClick = { showDifficultyLevelDialog = true },
                 modifier = Modifier
                     .fillMaxWidth()
                     .wrapContentHeight(),
@@ -69,7 +78,7 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(4.dp))
 
             Button(
-                onClick = onPlayWithComputer,
+                onClick = onRateApp,
                 modifier = Modifier
                     .fillMaxWidth()
                     .wrapContentHeight(),
@@ -86,7 +95,7 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(4.dp))
 
             Button(
-                onClick = onPlayWithComputer,
+                onClick = onContactAuthor,
                 modifier = Modifier
                     .fillMaxWidth()
                     .wrapContentHeight(),
@@ -103,7 +112,7 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(4.dp))
 
             Button(
-                onClick = onPlayWithComputer,
+                onClick = onExit,
                 modifier = Modifier
                     .fillMaxWidth()
                     .wrapContentHeight(),
@@ -118,10 +127,41 @@ fun HomeScreen(
             }
         }
     }
+
+    if (showDifficultyLevelDialog) {
+        val options = listOf(
+            stringResource(R.string.easy),
+            stringResource(R.string.middle),
+            stringResource(R.string.hard),
+            stringResource(R.string.extra_hard),
+        )
+        ChooseOptionDialog(
+            options = options,
+            title = stringResource(R.string.choose_difficulty),
+            confirmTxt = stringResource(R.string.choose),
+            dismissTxt = stringResource(R.string.cancel),
+            onDismissed = { showDifficultyLevelDialog = false },
+            onOptionSelected = {
+                val level = when(options.indexOf(it)) {
+                    0 -> DifficultyLevel.EASY
+                    1 -> DifficultyLevel.MIDDLE
+                    2 -> DifficultyLevel.HARD
+                    3 -> DifficultyLevel.EXTRA_HARD
+                    else -> null
+                }
+                level?.let(onPlayWithComputer)
+            }
+        )
+    }
 }
 
 @Preview
 @Composable
 fun HomeScreenPreview() {
-    HomeScreen(onPlayWithComputer = {})
+    HomeScreen(
+        onPlayWithComputer = {},
+        onRateApp = {},
+        onContactAuthor = {},
+        onExit = {}
+    )
 }

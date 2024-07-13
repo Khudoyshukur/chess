@@ -10,6 +10,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import uz.safix.chess.R
+import uz.safix.chess.model.DifficultyLevel
 import uz.safix.chess.ui.components.ChessBoard
 import uz.safix.chess.ui.viewmodels.GameViewModel
 

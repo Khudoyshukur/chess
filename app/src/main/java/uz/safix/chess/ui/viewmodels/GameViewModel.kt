@@ -1,5 +1,6 @@
 package uz.safix.chess.ui.viewmodels
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.bhlangonijr.chesslib.Board
@@ -13,8 +14,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import uz.safix.chess.model.DifficultyLevel
 import uz.safix.chess.model.defaultBoardState
 import uz.safix.chess.model.toBoardSquareState
+import uz.safix.chess.ui.BUNDLE_DIFFICULTY_LEVEL
 import uz.safix.engine_stockfish.FenAndDepth
 import uz.safix.engine_stockfish.StockFishEngine
 import javax.inject.Inject
@@ -28,8 +31,11 @@ import javax.inject.Inject
 
 @HiltViewModel
 class GameViewModel @Inject constructor(
-    private val engine: StockFishEngine
+    private val engine: StockFishEngine,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+    private val level = DifficultyLevel.valueOf(checkNotNull(savedStateHandle["level"]))
+
     private val _gameState = MutableStateFlow(defaultBoardState)
     private val selectedSquareIndex = MutableStateFlow<Int?>(null)
 
@@ -109,7 +115,7 @@ class GameViewModel @Inject constructor(
 
     private suspend fun moveByEngine() {
         val currentTime = System.currentTimeMillis()
-        val newMove = engine.getMove(FenAndDepth(board.fen, 10))
+        val newMove = engine.getMove(FenAndDepth(board.fen, level.depth))
         val diff = System.currentTimeMillis() - currentTime
 
         if (diff < COMPUTER_THINKING_TIME_MILLIS) {

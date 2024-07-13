@@ -1,10 +1,15 @@
 package uz.safix.chess.ui
 
 import androidx.compose.runtime.Composable
+import androidx.core.os.bundleOf
 import androidx.navigation.NavHostController
+import androidx.navigation.NavOptionsBuilder
+import androidx.navigation.Navigation
+import androidx.navigation.Navigator
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import uz.safix.chess.model.DifficultyLevel
 import uz.safix.chess.ui.screens.HomeScreen
 import uz.safix.chess.ui.screens.GameScreen
 
@@ -15,24 +20,36 @@ import uz.safix.chess.ui.screens.GameScreen
  * Email: Khudoyshukur.Juraev.001@mail.ru
  */
 
-enum class ChessAppScreen {
-    HomeScreen, PlayWithComputerScreen
+const val BUNDLE_DIFFICULTY_LEVEL = "BUNDLE_DIFFICULTY_LEVEL"
+
+
+enum class ChessAppScreen(val route: String) {
+    HomeScreen("HomeScreen"),
+    PlayWithComputerScreen("PlayWithComputerScreen/{level}")
 }
+
+fun getPlayWithComputerScreenRoute(level: DifficultyLevel) = "PlayWithComputerScreen/${level.name}"
 
 @Composable
 fun ChessApp(
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    onExitApp: () -> Unit = {},
+    onRateApp: () -> Unit = {},
+    onContactAuthor: () -> Unit = {},
 ) {
-    NavHost(navController = navController, startDestination = ChessAppScreen.HomeScreen.name) {
-        composable(ChessAppScreen.HomeScreen.name) {
+    NavHost(navController = navController, startDestination = ChessAppScreen.HomeScreen.route) {
+        composable(ChessAppScreen.HomeScreen.route) {
             HomeScreen(
-                onPlayWithComputer = {
-                    navController.navigate(ChessAppScreen.PlayWithComputerScreen.name)
-                }
+                onPlayWithComputer = { level ->
+                    navController.navigate(getPlayWithComputerScreenRoute(level),)
+                },
+                onRateApp = onRateApp,
+                onContactAuthor = onContactAuthor,
+                onExit = onExitApp
             )
         }
 
-        composable(ChessAppScreen.PlayWithComputerScreen.name) {
+        composable(ChessAppScreen.PlayWithComputerScreen.route) {
             GameScreen()
         }
     }
