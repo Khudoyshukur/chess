@@ -7,8 +7,11 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="board_square_black">#B7C0D8</color>
-    <color name="board_square_white">#E8EDF9</color>
+    <color name="board_square_black">#3C3B3B</color>
+    <color name="board_square_white">#bda483</color>
     <color name="board_background">#CACACC</color>
     <color name="selected_piece_background">#FF9800</color>
+    <color name="home_background">#272b2c</color>
+    <color name="button_color">#bda483</color>
+    <color name="on_button_color">#212121</color>
 </resources>

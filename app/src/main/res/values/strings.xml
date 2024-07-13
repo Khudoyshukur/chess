@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">Shaxmat</string>
     <string name="play_with_computer">Kompyuter bilan o\'ynash</string>
+    <string name="rate_app">Ilovaga baho berish</string>
+    <string name="contact_author">Dasturchi bilan aloqa</string>
+    <string name="exit">Chiqish</string>
 </resources>

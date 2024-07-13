@@ -5,9 +5,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import uz.safix.chess.R
 import uz.safix.chess.ui.components.ChessBoard
 import uz.safix.chess.ui.viewmodels.GameViewModel
 
@@ -25,7 +27,8 @@ fun GameScreen(
     val gameState by viewModel.gameState.collectAsStateWithLifecycle()
 
     Surface(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize(),
+        color = colorResource(id = R.color.home_background)
     ) {
         ChessBoard(
             states = gameState,

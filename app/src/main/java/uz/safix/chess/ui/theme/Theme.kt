@@ -13,7 +13,9 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.colorResource
 import androidx.core.view.WindowCompat
+import uz.safix.chess.R
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -57,7 +59,7 @@ fun ShaxmatTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
+            window.statusBarColor = view.context.getColor(R.color.home_background)
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = darkTheme
         }
     }

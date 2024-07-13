@@ -10,11 +10,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import uz.safix.chess.model.BoardSquareState
 import uz.safix.chess.model.defaultBoardState
 import uz.safix.chess.model.toBoardSquareState
 import uz.safix.engine_stockfish.FenAndDepth
@@ -24,7 +22,7 @@ import javax.inject.Inject
 /**
  * Created by: androdev
  * Date: 13-07-2024
- * Time: 1:45 PM
+ * Time: 1:45 sPM
  * Email: Khudoyshukur.Juraev.001@mail.ru
  */
 
@@ -114,13 +112,17 @@ class GameViewModel @Inject constructor(
         val newMove = engine.getMove(FenAndDepth(board.fen, 10))
         val diff = System.currentTimeMillis() - currentTime
 
-        if (diff < 2_000) {
-            delay(2_000 - diff)
+        if (diff < COMPUTER_THINKING_TIME_MILLIS) {
+            delay(COMPUTER_THINKING_TIME_MILLIS - diff)
         }
 
         val legalMove = board.doMove(newMove)
         if (legalMove) {
             updateStateFromBoard()
         }
+    }
+
+    companion object {
+        private const val COMPUTER_THINKING_TIME_MILLIS = 1_000 // 1 second
     }
 }
