@@ -23,6 +23,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import uz.safix.chess.R
+import uz.safix.chess.model.BoardSquareState
 import uz.safix.chess.model.ChessPiece
 import uz.safix.chess.model.defaultBoardState
 
@@ -35,9 +36,10 @@ import uz.safix.chess.model.defaultBoardState
 
 @Composable
 fun ChessBoard(
-    state: List<ChessPiece?>,
+    modifier: Modifier = Modifier,
     userPlayingWithWhite: Boolean,
-    modifier: Modifier = Modifier
+    states: List<BoardSquareState>,
+    onClick: (index: Int) -> Unit = {}
 ) {
     val numbers = remember {
         val list = listOf("8", "7", "6", "5", "4", "3", "2", "1")
@@ -70,21 +72,28 @@ fun ChessBoard(
         Column(
             modifier = Modifier.weight(1f)
         ) {
-            Spacer(modifier = Modifier
-                .height(Dp(18f))
-                .fillMaxWidth())
+            Spacer(
+                modifier = Modifier
+                    .height(Dp(18f))
+                    .fillMaxWidth()
+            )
             LazyVerticalGrid(
                 modifier = Modifier.weight(1f),
                 columns = GridCells.Fixed(8),
                 reverseLayout = userPlayingWithWhite
             ) {
                 items(64) {
-                    ChessBoardSquare(index = it, piece = state[it])
+                    ChessBoardSquare(
+                        state = states[it],
+                        onClick = onClick
+                    )
                 }
             }
-            Row(modifier = Modifier
-                .height(Dp(18f))
-                .fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .height(Dp(18f))
+                    .fillMaxWidth()
+            ) {
                 characters.forEach {
                     Box(
                         modifier = Modifier
@@ -97,20 +106,22 @@ fun ChessBoard(
                 }
             }
         }
-        Spacer(modifier = Modifier
-            .width(Dp(18f))
-            .fillMaxHeight())
+        Spacer(
+            modifier = Modifier
+                .width(Dp(18f))
+                .fillMaxHeight()
+        )
     }
 }
 
 @Preview
 @Composable
 fun ChessBoardPreviewWhite() {
-    ChessBoard(state = defaultBoardState, userPlayingWithWhite = true)
+    ChessBoard(states = defaultBoardState, userPlayingWithWhite = true)
 }
 
 @Preview
 @Composable
 fun ChessBoardPreviewBlack() {
-    ChessBoard(state = defaultBoardState, userPlayingWithWhite = false)
+    ChessBoard(states = defaultBoardState, userPlayingWithWhite = false)
 }

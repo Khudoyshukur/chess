@@ -10,4 +10,5 @@
     <color name="board_square_black">#B7C0D8</color>
     <color name="board_square_white">#E8EDF9</color>
     <color name="board_background">#CACACC</color>
+    <color name="selected_piece_background">#FF9800</color>
 </resources>

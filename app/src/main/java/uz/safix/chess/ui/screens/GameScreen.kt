@@ -3,10 +3,13 @@ package uz.safix.chess.ui.screens
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import uz.safix.chess.model.defaultBoardState
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import uz.safix.chess.ui.components.ChessBoard
+import uz.safix.chess.ui.viewmodels.GameViewModel
 
 /**
  * Created by: androdev
@@ -16,16 +19,24 @@ import uz.safix.chess.ui.components.ChessBoard
  */
 
 @Composable
-fun PlayWithComputerScreen() {
+fun GameScreen(
+    viewModel: GameViewModel = hiltViewModel()
+) {
+    val gameState by viewModel.gameState.collectAsStateWithLifecycle()
+
     Surface(
         modifier = Modifier.fillMaxSize()
     ) {
-        ChessBoard(state = defaultBoardState, userPlayingWithWhite = true)
+        ChessBoard(
+            states = gameState,
+            userPlayingWithWhite = true,
+            onClick = viewModel::onClick
+        )
     }
 }
 
 @Preview
 @Composable
 fun PlayWithComputerPreview() {
-    PlayWithComputerScreen()
+    GameScreen()
 }

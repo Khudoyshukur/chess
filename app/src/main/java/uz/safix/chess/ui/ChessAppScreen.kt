@@ -6,7 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import uz.safix.chess.ui.screens.HomeScreen
-import uz.safix.chess.ui.screens.PlayWithComputerScreen
+import uz.safix.chess.ui.screens.GameScreen
 
 /**
  * Created by: androdev
@@ -33,7 +33,7 @@ fun ChessApp(
         }
 
         composable(ChessAppScreen.PlayWithComputerScreen.name) {
-            PlayWithComputerScreen()
+            GameScreen()
         }
     }
 }

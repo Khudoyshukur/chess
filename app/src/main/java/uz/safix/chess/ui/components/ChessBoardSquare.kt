@@ -1,19 +1,24 @@
 package uz.safix.chess.ui.components
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import uz.safix.chess.R
+import uz.safix.chess.model.BoardSquareState
 import uz.safix.chess.model.ChessPiece
 import uz.safix.chess.model.getDrawable
 
@@ -26,23 +31,35 @@ import uz.safix.chess.model.getDrawable
 
 @Composable
 fun ChessBoardSquare(
-    piece: ChessPiece? = null,
-    index: Int
+    state: BoardSquareState,
+    onClick: (index: Int) -> Unit = {},
 ) {
-    val remainder = if ((index / 8) % 2 == 0) 1 else 0
-    val isWhite = index % 2 == remainder
-    val squareColor = if (isWhite) R.color.board_square_white else R.color.board_square_black
+    val remainder = if ((state.index / 8) % 2 == 0) 1 else 0
+    val isWhite = state.index % 2 == remainder
+    val squareColor = if (state.isSelectedForMove) {
+        R.color.selected_piece_background
+    } else if (isWhite) {
+        R.color.board_square_white
+    } else {
+        R.color.board_square_black
+    }
+
 
     Box(
         modifier = Modifier
             .aspectRatio(1f)
-            .background(color = colorResource(squareColor))
+            .background(colorResource(squareColor))
+            .clickable(enabled = true, onClick = {
+                onClick(state.index)
+            }),
     ) {
-        piece?.let {
+        state.piece?.let {
             Image(
-                painter = painterResource(id = piece.getDrawable),
-                contentDescription = piece.name,
-                modifier = Modifier.fillMaxSize().padding(4.dp),
+                painter = painterResource(id = state.piece.getDrawable),
+                contentDescription = state.piece.name,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(4.dp),
             )
         }
     }
@@ -51,6 +68,10 @@ fun ChessBoardSquare(
 @Preview
 @Composable
 fun ChessBoardSquarePreview() {
-    ChessBoardSquare(piece = null, index = 0)
+    ChessBoardSquare(
+        state = BoardSquareState(
+            piece = ChessPiece.BlackKing, index = 0, isSelectedForMove = false
+        )
+    )
 }
 
