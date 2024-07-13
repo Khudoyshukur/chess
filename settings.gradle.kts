@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Shaxmat"
 include(":app")
+include(":engine-stockfish")

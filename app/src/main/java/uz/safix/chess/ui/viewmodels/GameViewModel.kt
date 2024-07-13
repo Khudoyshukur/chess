@@ -3,9 +3,11 @@ package uz.safix.chess.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.bhlangonijr.chesslib.Board
+import com.github.bhlangonijr.chesslib.Side
 import com.github.bhlangonijr.chesslib.Square
 import com.github.bhlangonijr.chesslib.move.Move
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,6 +17,8 @@ import kotlinx.coroutines.launch
 import uz.safix.chess.model.BoardSquareState
 import uz.safix.chess.model.defaultBoardState
 import uz.safix.chess.model.toBoardSquareState
+import uz.safix.engine_stockfish.FenAndDepth
+import uz.safix.engine_stockfish.StockFishEngine
 import javax.inject.Inject
 
 /**
@@ -26,6 +30,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class GameViewModel @Inject constructor(
+    private val engine: StockFishEngine
 ) : ViewModel() {
     private val _gameState = MutableStateFlow(defaultBoardState)
     private val selectedSquareIndex = MutableStateFlow<Int?>(null)
@@ -49,6 +54,8 @@ class GameViewModel @Inject constructor(
 
     private fun initGame() = viewModelScope.launch {
         updateStateFromBoard()
+        engine.init(Unit)
+        engine.startAndWait()
     }
 
     private suspend fun updateStateFromBoard() {
@@ -96,5 +103,24 @@ class GameViewModel @Inject constructor(
             updateStateFromBoard()
         }
         selectedSquareIndex.emit(null)
+
+        if (board.sideToMove == Side.BLACK) {
+            moveByEngine()
+        }
+    }
+
+    private suspend fun moveByEngine() {
+        val currentTime = System.currentTimeMillis()
+        val newMove = engine.getMove(FenAndDepth(board.fen, 10))
+        val diff = System.currentTimeMillis() - currentTime
+
+        if (diff < 2_000) {
+            delay(2_000 - diff)
+        }
+
+        val legalMove = board.doMove(newMove)
+        if (legalMove) {
+            updateStateFromBoard()
+        }
     }
 }
