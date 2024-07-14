@@ -54,7 +54,8 @@ android {
 
 dependencies {
 
-    implementation(project(":engine-stockfish"))
+    // we are not using this stockfish engine now. It is too difficult to win
+    // implementation(project(":engine-stockfish"))
     implementation(project(":engine-lc0"))
 
     implementation("androidx.core:core-ktx:1.9.0")

@@ -2,6 +2,7 @@ package uz.safix.chess.model
 
 import androidx.annotation.DrawableRes
 import com.github.bhlangonijr.chesslib.Piece
+import com.github.bhlangonijr.chesslib.Side
 import uz.safix.chess.R
 
 /**
@@ -10,10 +11,6 @@ import uz.safix.chess.R
  * Time: 8:53 AM
  * Email: Khudoyshukur.Juraev.001@mail.ru
  */
-
-enum class Side {
-    WHITE, BLACK
-}
 
 enum class ChessPiece(val side: Side) {
     WhiteKing(Side.WHITE),

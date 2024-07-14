@@ -24,6 +24,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service android:name=".service.ChessEngineService"
+            android:exported="false"
+            android:process=":chess_engine">
+            <intent-filter>
+                <action android:name="uz.safix.chess.service.chess_bot" />
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>

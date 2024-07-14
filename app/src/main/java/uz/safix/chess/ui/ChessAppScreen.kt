@@ -51,7 +51,9 @@ fun ChessApp(
         }
 
         composable(ChessAppScreen.PlayWithComputerScreen.route) {
-            GameScreen()
+            GameScreen(
+                onFinished = { navController.popBackStack() }
+            )
         }
     }
 }

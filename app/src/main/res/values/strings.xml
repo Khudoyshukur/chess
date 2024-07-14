@@ -13,4 +13,12 @@
     <string name="cancel">Bekor</string>
     <string name="white">Oq</string>
     <string name="black">Qora</string>
+    <string name="draw">Durrang bo\'ldi</string>
+    <string name="black_won">Qoralar yutdi</string>
+    <string name="white_won">Oqlar yutdi</string>
+    <string name="close">Yopish</string>
+    <string name="knight">OT</string>
+    <string name="bishop">FIL</string>
+    <string name="rook">RUH</string>
+    <string name="queen">FARZIN</string>
 </resources>
