@@ -10,7 +10,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import uz.safix.chess.R
-import uz.safix.chess.model.DifficultyLevel
 import uz.safix.chess.ui.components.ChessBoard
 import uz.safix.chess.ui.viewmodels.GameViewModel
 
@@ -25,15 +24,21 @@ import uz.safix.chess.ui.viewmodels.GameViewModel
 fun GameScreen(
     viewModel: GameViewModel = hiltViewModel()
 ) {
-    val gameState by viewModel.gameState.collectAsStateWithLifecycle()
+    val squareStates by viewModel.squareStatesStream.collectAsStateWithLifecycle()
+    val selectedIndex by viewModel.selectedSquareIndexStream.collectAsStateWithLifecycle()
+    val lastEngineMove by viewModel.lastMoveStream.collectAsStateWithLifecycle()
+    val attackedKingIndex by viewModel.kingAttackedIndexStream.collectAsStateWithLifecycle()
 
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = colorResource(id = R.color.home_background)
     ) {
         ChessBoard(
-            states = gameState,
-            userPlayingWithWhite = true,
+            states = squareStates,
+            userPlayingWithWhite = viewModel.userPlayingWithWhite,
+            selectedIndex = selectedIndex,
+            attackedKingIndex = attackedKingIndex,
+            lastEngineMove = lastEngineMove,
             onClick = viewModel::onClick
         )
     }

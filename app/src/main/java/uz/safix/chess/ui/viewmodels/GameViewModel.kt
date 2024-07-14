@@ -10,16 +10,13 @@ import com.github.bhlangonijr.chesslib.move.Move
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import uz.safix.chess.model.DifficultyLevel
 import uz.safix.chess.model.defaultBoardState
 import uz.safix.chess.model.toBoardSquareState
-import uz.safix.chess.ui.BUNDLE_DIFFICULTY_LEVEL
-import uz.safix.engine_stockfish.FenAndDepth
-import uz.safix.engine_stockfish.StockFishEngine
+import uz.safix.engine_lc0.FenParam
+import uz.safix.engine_lc0.Lc0Engine
 import javax.inject.Inject
 
 /**
@@ -31,24 +28,24 @@ import javax.inject.Inject
 
 @HiltViewModel
 class GameViewModel @Inject constructor(
-    private val engine: StockFishEngine,
+    private val engine: Lc0Engine,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val level = DifficultyLevel.valueOf(checkNotNull(savedStateHandle["level"]))
+    private val side: Side = Side.valueOf(checkNotNull(savedStateHandle["side"]))
+    val userPlayingWithWhite: Boolean get() = side == Side.WHITE
 
-    private val _gameState = MutableStateFlow(defaultBoardState)
-    private val selectedSquareIndex = MutableStateFlow<Int?>(null)
+    private val _squareStatesStream = MutableStateFlow(defaultBoardState)
+    val squareStatesStream get() = _squareStatesStream.asStateFlow()
 
-    val gameState
-        get() = _gameState.combine(selectedSquareIndex) { gameState, selectedIndex ->
-            gameState.mapIndexed { index, squareState ->
-                squareState.copy(isSelectedForMove = index == selectedIndex)
-            }
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = defaultBoardState
-        )
+    private val _selectedSquareIndexStream = MutableStateFlow<Int?>(null)
+    val selectedSquareIndexStream get() = _selectedSquareIndexStream.asStateFlow()
+
+    private val _lastMoveStream = MutableStateFlow<Move?>(null)
+    val lastMoveStream get() = _lastMoveStream.asStateFlow()
+
+    private val _kingAttackedIndexStream = MutableStateFlow<Int?>(null)
+    val kingAttackedIndexStream get() = _kingAttackedIndexStream.asStateFlow()
 
     private val board = Board()
 
@@ -58,16 +55,30 @@ class GameViewModel @Inject constructor(
 
     private fun initGame() = viewModelScope.launch {
         updateStateFromBoard()
-        engine.init(Unit)
+        engine.init(level.weights)
+
+        if (side == Side.BLACK) {
+            moveByEngine(bestStartingMoves.random())
+        }
+
         engine.startAndWait()
     }
 
     private suspend fun updateStateFromBoard() {
-        _gameState.emit(
+        _squareStatesStream.emit(
             board.boardToArray().take(64).mapIndexed { index, piece ->
-                piece.toBoardSquareState(index == selectedSquareIndex.value, index)
+                piece.toBoardSquareState(index)
             }
         )
+
+        if (board.backup.isNotEmpty()) {
+            board.backup.last?.move?.let { _lastMoveStream.emit(it) }
+        }
+        if (board.isKingAttacked) {
+            _kingAttackedIndexStream.emit(board.getKingSquare(board.sideToMove).ordinal)
+        } else {
+            _kingAttackedIndexStream.emit(null)
+        }
     }
 
     fun onClick(clickedIndex: Int) = viewModelScope.launch {
@@ -75,16 +86,22 @@ class GameViewModel @Inject constructor(
             return@launch
         }
 
-        val currentSelectedIndex = selectedSquareIndex.value
-        if (clickedIndex == currentSelectedIndex) {
-            selectedSquareIndex.emit(null)
+        if (board.sideToMove != side) {
             return@launch
         }
 
-        val squareState = _gameState.value[clickedIndex]
+        _lastMoveStream.emit(null)
+
+        val currentSelectedIndex = selectedSquareIndexStream.value
+        if (clickedIndex == currentSelectedIndex) {
+            _selectedSquareIndexStream.emit(null)
+            return@launch
+        }
+
+        val squareState = squareStatesStream.value[clickedIndex]
         if (currentSelectedIndex == null) {
             if (squareState.piece != null) {
-                selectedSquareIndex.emit(clickedIndex)
+                _selectedSquareIndexStream.emit(clickedIndex)
             }
 
             return@launch
@@ -93,42 +110,50 @@ class GameViewModel @Inject constructor(
 
         if (
             squareState.piece?.side != null &&
-            squareState.piece.side == _gameState.value[currentSelectedIndex].piece?.side
+            squareState.piece.side == squareStatesStream.value[currentSelectedIndex].piece?.side
         ) {
-            selectedSquareIndex.emit(clickedIndex)
+            _selectedSquareIndexStream.emit(clickedIndex)
             return@launch
         }
 
-        val legalMove = board.doMove(
-            Move(Square.values()[currentSelectedIndex], Square.values()[clickedIndex]),
-            true
+        val move = Move(
+            Square.values()[currentSelectedIndex],
+            Square.values()[clickedIndex]
         )
-        if (legalMove) {
-            updateStateFromBoard()
-        }
-        selectedSquareIndex.emit(null)
 
-        if (board.sideToMove == Side.BLACK) {
+        if (move in board.legalMoves()) {
+            val moved = board.doMove(move)
+            if (moved) {
+                updateStateFromBoard()
+            }
+        }
+        _selectedSquareIndexStream.emit(null)
+
+        if (board.sideToMove == side.flip()) {
             moveByEngine()
         }
     }
 
-    private suspend fun moveByEngine() {
+    private suspend fun moveByEngine(move: String? = null) {
         val currentTime = System.currentTimeMillis()
-        val newMove = engine.getMove(FenAndDepth(board.fen, level.depth))
+        val engineMove = move ?: engine.getMove(FenParam(board.fen))
+        val newMove = Move(engineMove, side.flip())
         val diff = System.currentTimeMillis() - currentTime
 
         if (diff < COMPUTER_THINKING_TIME_MILLIS) {
             delay(COMPUTER_THINKING_TIME_MILLIS - diff)
         }
 
-        val legalMove = board.doMove(newMove)
-        if (legalMove) {
-            updateStateFromBoard()
+        if (newMove in board.legalMoves()) {
+            val moved = board.doMove(newMove)
+            if (moved) {
+                updateStateFromBoard()
+            }
         }
     }
 
     companion object {
         private const val COMPUTER_THINKING_TIME_MILLIS = 1_000 // 1 second
+        private val bestStartingMoves = listOf("e2e4", "d2d4", "g1f3", "c2c4", "b1c3", "b2b3", "g2g3")
     }
 }

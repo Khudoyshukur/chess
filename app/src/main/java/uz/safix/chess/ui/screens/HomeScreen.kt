@@ -25,9 +25,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.github.bhlangonijr.chesslib.Side
 import uz.safix.chess.R
 import uz.safix.chess.model.DifficultyLevel
-import uz.safix.chess.ui.components.ChooseOptionDialog
+import uz.safix.chess.ui.components.ChooseChessOptionsDialog
 
 /**
  * Created by: androdev
@@ -38,7 +39,7 @@ import uz.safix.chess.ui.components.ChooseOptionDialog
 
 @Composable
 fun HomeScreen(
-    onPlayWithComputer: (level: DifficultyLevel) -> Unit,
+    onPlayWithComputer: (level: DifficultyLevel, side: Side) -> Unit,
     onRateApp: () -> Unit,
     onContactAuthor: () -> Unit,
     onExit: () -> Unit
@@ -135,21 +136,20 @@ fun HomeScreen(
             stringResource(R.string.hard),
             stringResource(R.string.extra_hard),
         )
-        ChooseOptionDialog(
+        ChooseChessOptionsDialog(
             options = options,
-            title = stringResource(R.string.choose_difficulty),
+            title = stringResource(R.string.choose_difficulty_and_side),
             confirmTxt = stringResource(R.string.choose),
-            dismissTxt = stringResource(R.string.cancel),
             onDismissed = { showDifficultyLevelDialog = false },
-            onOptionSelected = {
-                val level = when(options.indexOf(it)) {
+            onOptionSelected = { levelTxt, side ->
+                val level = when(options.indexOf(levelTxt)) {
                     0 -> DifficultyLevel.EASY
                     1 -> DifficultyLevel.MIDDLE
                     2 -> DifficultyLevel.HARD
                     3 -> DifficultyLevel.EXTRA_HARD
                     else -> null
                 }
-                level?.let(onPlayWithComputer)
+                level?.let { onPlayWithComputer(it, side) }
             }
         )
     }
@@ -159,7 +159,7 @@ fun HomeScreen(
 @Composable
 fun HomeScreenPreview() {
     HomeScreen(
-        onPlayWithComputer = {},
+        onPlayWithComputer = {_, _ ->},
         onRateApp = {},
         onContactAuthor = {},
         onExit = {}

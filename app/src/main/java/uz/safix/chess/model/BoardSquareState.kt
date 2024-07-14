@@ -9,6 +9,5 @@ package uz.safix.chess.model
 
 data class BoardSquareState(
     val piece: ChessPiece?,
-    val isSelectedForMove: Boolean,
     val index: Int
 )

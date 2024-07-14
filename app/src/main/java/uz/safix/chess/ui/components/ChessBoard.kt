@@ -22,6 +22,8 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
+import com.github.bhlangonijr.chesslib.Square
+import com.github.bhlangonijr.chesslib.move.Move
 import uz.safix.chess.R
 import uz.safix.chess.model.BoardSquareState
 import uz.safix.chess.model.ChessPiece
@@ -39,6 +41,9 @@ fun ChessBoard(
     modifier: Modifier = Modifier,
     userPlayingWithWhite: Boolean,
     states: List<BoardSquareState>,
+    selectedIndex: Int?,
+    attackedKingIndex: Int?,
+    lastEngineMove: Move?,
     onClick: (index: Int) -> Unit = {}
 ) {
     val numbers = remember {
@@ -85,6 +90,10 @@ fun ChessBoard(
                 items(64) {
                     ChessBoardSquare(
                         state = states[it],
+                        isSelectedForMove = selectedIndex == it,
+                        isKingAttacked = attackedKingIndex == it,
+                        engineMoveFrom = lastEngineMove?.from?.ordinal == it,
+                        engineMoveTo = lastEngineMove?.to?.ordinal == it,
                         onClick = onClick
                     )
                 }
@@ -117,11 +126,23 @@ fun ChessBoard(
 @Preview
 @Composable
 fun ChessBoardPreviewWhite() {
-    ChessBoard(states = defaultBoardState, userPlayingWithWhite = true)
+    ChessBoard(
+        states = defaultBoardState,
+        userPlayingWithWhite = true,
+        selectedIndex = null,
+        lastEngineMove = Move(Square.E7, Square.E5),
+        attackedKingIndex = 4
+    )
 }
 
 @Preview
 @Composable
 fun ChessBoardPreviewBlack() {
-    ChessBoard(states = defaultBoardState, userPlayingWithWhite = false)
+    ChessBoard(
+        states = defaultBoardState,
+        userPlayingWithWhite = false,
+        selectedIndex = null,
+        lastEngineMove = Move(Square.E2, Square.E4),
+        attackedKingIndex = 60
+    )
 }

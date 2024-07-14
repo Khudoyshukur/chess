@@ -8,7 +8,9 @@
     <string name="middle">O\'rtacha</string>
     <string name="hard">Qiyin</string>
     <string name="extra_hard">Juda qiyin</string>
-    <string name="choose_difficulty">Qiyinlik darajasini tanlang</string>
+    <string name="choose_difficulty_and_side">Qiyinlik darajasi va donalarni tanlang</string>
     <string name="choose">Tanlash</string>
     <string name="cancel">Bekor</string>
+    <string name="white">Oq</string>
+    <string name="black">Qora</string>
 </resources>

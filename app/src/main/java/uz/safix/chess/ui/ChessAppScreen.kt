@@ -9,6 +9,7 @@ import androidx.navigation.Navigator
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.github.bhlangonijr.chesslib.Side
 import uz.safix.chess.model.DifficultyLevel
 import uz.safix.chess.ui.screens.HomeScreen
 import uz.safix.chess.ui.screens.GameScreen
@@ -25,10 +26,10 @@ const val BUNDLE_DIFFICULTY_LEVEL = "BUNDLE_DIFFICULTY_LEVEL"
 
 enum class ChessAppScreen(val route: String) {
     HomeScreen("HomeScreen"),
-    PlayWithComputerScreen("PlayWithComputerScreen/{level}")
+    PlayWithComputerScreen("PlayWithComputerScreen/{level}/{side}")
 }
 
-fun getPlayWithComputerScreenRoute(level: DifficultyLevel) = "PlayWithComputerScreen/${level.name}"
+fun getPlayWithComputerScreenRoute(level: DifficultyLevel, side: Side) = "PlayWithComputerScreen/${level.name}/${side.name}"
 
 @Composable
 fun ChessApp(
@@ -40,8 +41,8 @@ fun ChessApp(
     NavHost(navController = navController, startDestination = ChessAppScreen.HomeScreen.route) {
         composable(ChessAppScreen.HomeScreen.route) {
             HomeScreen(
-                onPlayWithComputer = { level ->
-                    navController.navigate(getPlayWithComputerScreenRoute(level),)
+                onPlayWithComputer = { level, side ->
+                    navController.navigate(getPlayWithComputerScreenRoute(level, side),)
                 },
                 onRateApp = onRateApp,
                 onContactAuthor = onContactAuthor,
