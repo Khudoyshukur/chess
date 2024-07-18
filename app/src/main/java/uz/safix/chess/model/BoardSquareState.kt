@@ -1,5 +1,7 @@
 package uz.safix.chess.model
 
+import androidx.compose.runtime.Stable
+
 /**
  * Created by: androdev
  * Date: 13-07-2024
@@ -7,7 +9,12 @@ package uz.safix.chess.model
  * Email: Khudoyshukur.Juraev.001@mail.ru
  */
 
+@Stable
 data class BoardSquareState(
     val piece: ChessPiece?,
-    val index: Int
+    val index: Int,
+    val isSelectedForMove: Boolean = false,
+    val isKingAttacked: Boolean = false,
+    val movedFrom: Boolean = false,
+    val movedTo: Boolean = false,
 )

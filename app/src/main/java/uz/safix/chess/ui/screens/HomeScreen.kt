@@ -3,6 +3,7 @@ package uz.safix.chess.ui.screens
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -51,81 +52,17 @@ fun HomeScreen(
             .fillMaxSize()
             .background(colorResource(R.color.home_background)),
     ) {
-        Image(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter),
-            painter = painterResource(id = R.drawable.home_background),
-            contentDescription = null
-        )
+        BackgroundImage()
         Column(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 32.dp)
         ) {
-            Button(
-                onClick = { showDifficultyLevelDialog = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = colorResource(R.color.button_color)
-                )
-            ) {
-                Text(
-                    text = stringResource(id = R.string.play_with_computer),
-                    color = colorResource(id = R.color.on_button_color)
-                )
-            }
-
+            PlayWithComputerButton { showDifficultyLevelDialog = true }
             Spacer(modifier = Modifier.height(4.dp))
-
-            Button(
-                onClick = onRateApp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = colorResource(R.color.button_color)
-                )
-            ) {
-                Text(
-                    text = stringResource(id = R.string.rate_app),
-                    color = colorResource(id = R.color.on_button_color)
-                )
-            }
-
+            RateAppButton(onRateApp)
             Spacer(modifier = Modifier.height(4.dp))
-
-            Button(
-                onClick = onContactAuthor,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = colorResource(R.color.button_color)
-                )
-            ) {
-                Text(
-                    text = stringResource(id = R.string.contact_author),
-                    color = colorResource(id = R.color.on_button_color)
-                )
-            }
-
+            ContactButton(onContactAuthor)
             Spacer(modifier = Modifier.height(4.dp))
-
-            Button(
-                onClick = onExit,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = colorResource(R.color.button_color)
-                )
-            ) {
-                Text(
-                    text = stringResource(id = R.string.exit),
-                    color = colorResource(id = R.color.on_button_color)
-                )
-            }
+            ExitButton(onExit)
         }
     }
 
@@ -142,7 +79,7 @@ fun HomeScreen(
             confirmTxt = stringResource(R.string.choose),
             onDismissed = { showDifficultyLevelDialog = false },
             onOptionSelected = { levelTxt, side ->
-                val level = when(options.indexOf(levelTxt)) {
+                val level = when (options.indexOf(levelTxt)) {
                     0 -> DifficultyLevel.EASY
                     1 -> DifficultyLevel.MIDDLE
                     2 -> DifficultyLevel.HARD
@@ -155,11 +92,94 @@ fun HomeScreen(
     }
 }
 
+@Composable
+fun BoxScope.BackgroundImage() {
+    Image(
+        modifier = Modifier
+            .fillMaxWidth()
+            .align(Alignment.BottomCenter),
+        painter = painterResource(id = R.drawable.home_background),
+        contentDescription = null
+    )
+}
+
+@Composable
+fun PlayWithComputerButton(onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight(),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = colorResource(R.color.button_color)
+        )
+    ) {
+        Text(
+            text = stringResource(id = R.string.play_with_computer),
+            color = colorResource(id = R.color.on_button_color)
+        )
+    }
+}
+
+@Composable
+fun RateAppButton(onRateApp: () -> Unit) {
+    Button(
+        onClick = onRateApp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight(),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = colorResource(R.color.button_color)
+        )
+    ) {
+        Text(
+            text = stringResource(id = R.string.rate_app),
+            color = colorResource(id = R.color.on_button_color)
+        )
+    }
+}
+
+@Composable
+fun ContactButton(onContactAuthor: () -> Unit) {
+    Button(
+        onClick = onContactAuthor,
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight(),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = colorResource(R.color.button_color)
+        )
+    ) {
+        Text(
+            text = stringResource(id = R.string.contact_author),
+            color = colorResource(id = R.color.on_button_color)
+        )
+    }
+}
+
+@Composable
+fun ExitButton(onExit: () -> Unit) {
+    Button(
+        onClick = onExit,
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight(),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = colorResource(R.color.button_color)
+        )
+    ) {
+        Text(
+            text = stringResource(id = R.string.exit),
+            color = colorResource(id = R.color.on_button_color)
+        )
+    }
+}
+
 @Preview
 @Composable
 fun HomeScreenPreview() {
     HomeScreen(
-        onPlayWithComputer = {_, _ ->},
+        onPlayWithComputer = { _, _ -> },
         onRateApp = {},
         onContactAuthor = {},
         onExit = {}

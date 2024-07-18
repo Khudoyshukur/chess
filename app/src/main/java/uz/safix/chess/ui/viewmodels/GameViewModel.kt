@@ -17,24 +17,23 @@ import com.github.bhlangonijr.chesslib.Square
 import com.github.bhlangonijr.chesslib.game.GameResult
 import com.github.bhlangonijr.chesslib.move.Move
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.suspendCancellableCoroutine
 import uz.safix.chess.model.ChessPiece
 import uz.safix.chess.model.DifficultyLevel
 import uz.safix.chess.model.defaultBoardState
 import uz.safix.chess.model.toBoardSquareState
 import uz.safix.chess.service.ChessEngineService
-import uz.safix.engine_lc0.FenParam
 import javax.inject.Inject
 
 /**
@@ -52,17 +51,29 @@ class GameViewModel @Inject constructor(
     val level = DifficultyLevel.valueOf(checkNotNull(savedStateHandle["level"]))
     val userPlayingWithWhite: Boolean get() = side == Side.WHITE
 
+    private val _showPromotionDialogForIndex = MutableStateFlow<Int?>(null)
+    val showPromotionDialogForIndex get() = _showPromotionDialogForIndex.asStateFlow()
+
     private val _squareStatesStream = MutableStateFlow(defaultBoardState)
-    val squareStatesStream get() = _squareStatesStream.asStateFlow()
-
     private val _selectedSquareIndexStream = MutableStateFlow<Int?>(null)
-    val selectedSquareIndexStream get() = _selectedSquareIndexStream.asStateFlow()
-
     private val _lastMoveStream = MutableStateFlow<Move?>(null)
-    val lastMoveStream get() = _lastMoveStream.asStateFlow()
-
     private val _kingAttackedIndexStream = MutableStateFlow<Int?>(null)
-    val kingAttackedIndexStream get() = _kingAttackedIndexStream.asStateFlow()
+
+    val squareStatesStream = combine(
+        _squareStatesStream,
+        _selectedSquareIndexStream,
+        _lastMoveStream,
+        _kingAttackedIndexStream,
+    ) { squareStates, selectedSquareIndex, lastMove, kingAttackedIndex ->
+        squareStates.mapIndexed { index, square ->
+            square.copy(
+                isSelectedForMove = selectedSquareIndex == index,
+                isKingAttacked = kingAttackedIndex == index,
+                movedFrom = lastMove?.from?.ordinal == index,
+                movedTo = lastMove?.to?.ordinal == index
+            )
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), defaultBoardState)
 
     private val _gameResultStream = MutableStateFlow(GameResult.ONGOING)
     val gameResultStream get() = _gameResultStream.asStateFlow()
@@ -82,6 +93,8 @@ class GameViewModel @Inject constructor(
 
     init {
         initGame()
+
+        Log.e("LLLLLL", board.boardToArray().joinToString { it.toString() })
     }
 
     private fun initGame() = viewModelScope.launch {
@@ -122,24 +135,19 @@ class GameViewModel @Inject constructor(
         }
     }
 
-    fun availableForPromotion(indexToClick: Int): Boolean {
-        val selectedIndex = selectedSquareIndexStream.value ?: return false
+    private fun availableForPromotion(indexToClick: Int): Boolean {
+        val selectedIndex = _selectedSquareIndexStream.value ?: return false
         if (selectedIndex !in 0..63) return false
 
         val squareState = squareStatesStream.value[selectedIndex]
-        if (squareState.piece == null) return false
+        if (squareState.piece == null || squareState.piece !in setOf(ChessPiece.WhitePawn, ChessPiece.BlackPawn)) return false
         if (squareState.piece.side != side) return false
 
-        val pawn = when(side) {
-            Side.WHITE -> ChessPiece.WhitePawn
-            Side.BLACK -> ChessPiece.BlackPawn
-        }
-        if (squareState.piece != pawn) return false
-
-        return when(side) {
+        return when (side) {
             Side.WHITE -> {
                 return selectedIndex in 48..55 && indexToClick in 56..63
             }
+
             Side.BLACK -> {
                 return selectedIndex in 8..15 && indexToClick in 0..7
             }
@@ -147,13 +155,20 @@ class GameViewModel @Inject constructor(
     }
 
     fun onClick(clickedIndex: Int, promotion: PieceType?) = viewModelScope.launch {
+        if (promotion == null && availableForPromotion(clickedIndex)) {
+            _showPromotionDialogForIndex.emit(clickedIndex)
+            return@launch
+        }
+
+        if (promotion != null) _showPromotionDialogForIndex.emit(null)
+
         if (board.isMated || board.isDraw) return@launch
         if (clickedIndex !in 0..63) return@launch
         if (board.sideToMove != side) return@launch
 
         _lastMoveStream.emit(null)
 
-        val currentSelectedIndex = selectedSquareIndexStream.value
+        val currentSelectedIndex = _selectedSquareIndexStream.value
         if (clickedIndex == currentSelectedIndex) {
             _selectedSquareIndexStream.emit(null)
             return@launch

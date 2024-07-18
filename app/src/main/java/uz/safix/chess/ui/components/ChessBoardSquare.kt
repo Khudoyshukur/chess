@@ -1,5 +1,6 @@
 package uz.safix.chess.ui.components
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,21 +29,18 @@ import uz.safix.chess.model.getDrawable
 @Composable
 fun ChessBoardSquare(
     state: BoardSquareState,
-    isSelectedForMove: Boolean,
-    isKingAttacked: Boolean,
-    engineMoveFrom: Boolean,
-    engineMoveTo: Boolean,
     onClick: (index: Int) -> Unit = {},
 ) {
+
     val remainder = if ((state.index / 8) % 2 == 0) 1 else 0
     val isWhite = state.index % 2 == remainder
-    val squareColor = if (isKingAttacked) {
+    val squareColor = if (state.isKingAttacked) {
         R.color.king_attacked
-    } else if (engineMoveFrom) {
+    } else if (state.movedFrom) {
         R.color.engine_move_from
-    } else if (engineMoveTo) {
+    } else if (state.movedTo) {
         R.color.engine_move_to
-    } else if (isSelectedForMove) {
+    } else if (state.isSelectedForMove) {
         R.color.selected_piece_background
     } else if (isWhite) {
         R.color.board_square_white
@@ -77,11 +75,7 @@ fun ChessBoardSquarePreview() {
         state = BoardSquareState(
             piece = ChessPiece.BlackKing,
             index = 0
-        ),
-        isSelectedForMove = false,
-        engineMoveFrom = true,
-        engineMoveTo = false,
-        isKingAttacked = true
+        )
     )
 }
 
