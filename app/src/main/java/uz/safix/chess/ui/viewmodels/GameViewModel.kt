@@ -73,7 +73,7 @@ class GameViewModel @Inject constructor(
                 movedTo = lastMove?.to?.ordinal == index
             )
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), defaultBoardState)
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, defaultBoardState)
 
     private val _gameResultStream = MutableStateFlow(GameResult.ONGOING)
     val gameResultStream get() = _gameResultStream.asStateFlow()
@@ -93,8 +93,6 @@ class GameViewModel @Inject constructor(
 
     init {
         initGame()
-
-        Log.e("LLLLLL", board.boardToArray().joinToString { it.toString() })
     }
 
     private fun initGame() = viewModelScope.launch {
