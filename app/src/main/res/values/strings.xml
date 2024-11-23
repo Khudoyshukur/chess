@@ -4,10 +4,9 @@
     <string name="rate_app">Ilovaga baho berish</string>
     <string name="contact_author">Dasturchi bilan aloqa</string>
     <string name="exit">Chiqish</string>
-    <string name="easy">Oson</string>
-    <string name="middle">O\'rtacha</string>
-    <string name="hard">Qiyin</string>
-    <string name="extra_hard">Juda qiyin</string>
+
+    <string name="level_n">Level %d</string>
+
     <string name="choose_difficulty_and_side">Qiyinlik darajasi va donalarni tanlang</string>
     <string name="choose">Tanlash</string>
     <string name="cancel">Bekor</string>

@@ -7,7 +7,7 @@ package uz.safix.engine_stockfish
  * Email: Khudoyshukur.Juraev.001@mail.ru
  */
 
-sealed interface EngineCommand {
+internal sealed interface EngineCommand {
 
     data class SetPosition(private val fen: String) : EngineCommand {
         override fun toString() = "position fen $fen"

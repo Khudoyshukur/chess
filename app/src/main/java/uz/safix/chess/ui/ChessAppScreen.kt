@@ -1,18 +1,14 @@
 package uz.safix.chess.ui
 
 import androidx.compose.runtime.Composable
-import androidx.core.os.bundleOf
 import androidx.navigation.NavHostController
-import androidx.navigation.NavOptionsBuilder
-import androidx.navigation.Navigation
-import androidx.navigation.Navigator
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.github.bhlangonijr.chesslib.Side
-import uz.safix.chess.model.DifficultyLevel
-import uz.safix.chess.ui.screens.HomeScreen
+import uz.kjuraev.engine.DifficultyLevel
 import uz.safix.chess.ui.screens.GameScreen
+import uz.safix.chess.ui.screens.HomeScreen
 
 /**
  * Created by: androdev

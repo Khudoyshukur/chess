@@ -17,19 +17,18 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import uz.safix.engine_lc0.FenParam
-import uz.safix.engine_lc0.Lc0Engine
-import uz.safix.engine_lc0.MaiaWeights
+import uz.kjuraev.engine.ChessEngine
+import uz.kjuraev.engine.ChessEngineParams
+import uz.kjuraev.engine.DifficultyLevel
+import uz.safix.engine_stockfish.ChessEngineStockfish
 import javax.inject.Inject
 
 /**
  * Created by: androdev
  * Date: 13-07-2024
- * Time: 6:25 PM
+ * Time: 6:25 PM
  * Email: Khudoyshukur.Juraev.001@mail.ru
  */
 
@@ -37,16 +36,17 @@ import javax.inject.Inject
 class ChessEngineService: Service() {
     private var engineJob: Job? = null
 
-    @Inject lateinit var engine: Lc0Engine
+    @ChessEngineStockfish
+    @Inject lateinit var engine: ChessEngine
 
-    private val weight = CompletableDeferred<MaiaWeights>()
+     private val difficultyLevelCompletable = CompletableDeferred<DifficultyLevel>()
 
     override fun onCreate() {
         super.onCreate()
         engineJob = CoroutineScope(Dispatchers.Default).launch {
             with(engine) {
-                init(weight.await())
-                startAndWait()
+                val difficultyLevel = difficultyLevelCompletable.await()
+                startAndAwaitReady(ChessEngineParams(difficultyLevel))
             }
         }
     }
@@ -58,12 +58,12 @@ class ChessEngineService: Service() {
 
     override fun unbindService(conn: ServiceConnection) {
         super.unbindService(conn)
-        weight.cancel()
+        difficultyLevelCompletable.cancel()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        println("onDestroy")
+        runBlocking(Dispatchers.IO) { engine.stop() }
         Process.killProcess(Process.myPid())
         engineJob?.cancel()
     }
@@ -72,12 +72,12 @@ class ChessEngineService: Service() {
         override fun handleMessage(msg: Message) {
             when (msg.what) {
                 MSG_GET_MOVE -> {
-                    runBlocking {
+                    runBlocking(Dispatchers.IO) {
                         val startTime = System.currentTimeMillis()
 
                         val replyMessage = Message.obtain(null, MSG_GET_MOVE)
                         val fen = msg.data.getString(BUNDLE_FEN)
-                        val reply = if (fen != null) engine.getMove(FenParam(fen)) else ""
+                        val reply = if (fen != null) engine.getMove(fen) else ""
                         replyMessage.data = bundleOf(BUNDLE_MOVE to reply)
 
                         val diff = System.currentTimeMillis() - startTime
@@ -95,27 +95,23 @@ class ChessEngineService: Service() {
     private val messenger = Messenger(incomingMessageHandler)
 
     override fun onBind(intent: Intent?): IBinder? {
-        val weights = intent?.getStringExtra(EXTRA_WEIGHT)?.let {
-            MaiaWeights.valueOf(it)
-        } ?: throw IllegalArgumentException("Missing weight")
-        weight.complete(weights)
+        intent?.getStringExtra(EXTRA_DIFFICULTY_LEVEL)?.let {
+            difficultyLevelCompletable.complete(DifficultyLevel.valueOf(it))
+        } ?: throw IllegalArgumentException("Difficulty level should be provided")
 
         return messenger.binder
     }
 
     companion object {
         private const val COMPUTER_THINKING_TIME_MILLIS = 1_500 // 1.5 second
-        private const val EXTRA_WEIGHT = "EXTRA_WEIGHT"
+        private const val EXTRA_DIFFICULTY_LEVEL = "EXTRA_WEIGHT"
         const val BUNDLE_FEN = "BUNDLE_FEN"
         const val BUNDLE_MOVE = "BUNDLE_MOVE"
         const val MSG_GET_MOVE = 1
 
-        private val _moveFlow = MutableSharedFlow<String>()
-        val moveFlow get() = _moveFlow.asSharedFlow()
-
-        fun getBoundIntent(context: Context, weights: MaiaWeights): Intent {
+        fun getBoundIntent(context: Context, difficultyLevel: DifficultyLevel): Intent {
             return Intent(context, ChessEngineService::class.java).also {
-                it.putExtra(EXTRA_WEIGHT, weights.name)
+                 it.putExtra(EXTRA_DIFFICULTY_LEVEL, difficultyLevel.name)
             }
         }
     }

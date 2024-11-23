@@ -1,106 +1,106 @@
 package uz.safix.engine_stockfish
 
-import androidx.annotation.Keep
+import android.util.Log
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.takeWhile
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import uz.kjuraev.engine.ChessEngine
+import uz.kjuraev.engine.ChessEngineParams
+import uz.kjuraev.engine.Fen
+import uz.kjuraev.engine.awaitReady
+import uz.kjuraev.engine.moveToState
 import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.coroutineContext
 
-class StockFishEngine(
+internal class StockFishEngine(
     private val bridge: StockfishJni,
     private val engineContext: CoroutineContext,
-) {
+): ChessEngine {
+    private val _stateStream = MutableStateFlow<ChessEngine.State>(ChessEngine.State.Uninitialized)
+    override val stateStream: StateFlow<ChessEngine.State>
+        get() = _stateStream.asStateFlow()
 
-    private val stateFlow = MutableStateFlow<State>(State.Uninitialized)
+    private val coroutineScope = CoroutineScope(engineContext)
+    private var moveListenerJob: Job? = null
+    private var moveCompletable: CompletableDeferred<String>? = null
+    private val synchronizer = Mutex()
 
-    fun init(params: Unit) {
+    private lateinit var currentParams: StockFishParams
+
+    init {
+        logEvent("Init")
         bridge.init()
     }
 
-    suspend fun awaitReady() {
-        awaitState<State.Ready>()
+    override suspend fun startAndAwaitReady(params: ChessEngineParams) {
+        logEvent("StartAndAwaitReady $params")
+
+        start(params)
+        stateStream.awaitReady()
     }
 
-    suspend fun startAndWait() {
-        awaitState<State.Uninitialized>()
-        CoroutineScope(coroutineContext).launch {
-            launch(engineContext) {
-                bridge.main(threadCount = DEFAULT_THREAD_COUNT)
+    override suspend fun start(params: ChessEngineParams) = synchronizer.withLock {
+        currentParams = params.toStockfishParams()
+
+        moveListenerJob?.cancel()
+        moveListenerJob = coroutineScope.launch {
+            launch {
+                logEvent("start main")
+                bridge.main(
+                    threadCount = DEFAULT_THREAD_COUNT,
+                    skillLevel = currentParams.skillLevel
+                )
             }
 
-            launch(engineContext) {
+            launch {
+                logEvent("start listening moves")
                 while (isActive) {
                     val output = bridge.readLine() ?: continue
+
                     if (output.startsWith(INIT_TOKEN)) {
-                        moveToState(State.Ready)
+                        logEvent("Ready")
+                        _stateStream.moveToState(ChessEngine.State.Ready(params))
                     } else if (output.startsWith(BEST_MOVE_TOKEN)) {
                         // 0:bestmove 1:[e2e4] 2:ponder 3:a6a7
                         val move = output.split(" ")[1].trim()
-                        assertStateOrNull<State.Moving>()?.completable?.complete(move)
+                        moveCompletable?.complete(move)
                     }
                 }
             }
-        }.let { job ->
-            try {
-                awaitCancellation()
-            } finally {
-                bridge.writeLine(EngineCommand.Quit.toString())
-                job.cancel()
-                moveToState(State.Uninitialized)
-            }
         }
     }
 
-    suspend fun getMove(params: FenAndDepth): String {
-        val (fen, depth) = params
-        return withContext(engineContext) {
-            awaitState<State.Ready>()
-            val moveCompletable = CompletableDeferred<String>()
-            moveToState(State.Moving(moveCompletable))
+    override suspend fun stop() {
+        logEvent("stop")
 
-            listOf(
-                EngineCommand.SetPosition(fen),
-                EngineCommand.GoDepth(depth),
-            ).forEach {
-                bridge.writeLine(it.toString())
-            }
+        moveListenerJob?.cancel()
+        bridge.writeLine(EngineCommand.Quit.toString())
+        _stateStream.moveToState(ChessEngine.State.Uninitialized)
+    }
 
-            moveCompletable.await().also {
-                moveToState(State.Ready)
-            }
+    override suspend fun getMove(fen: Fen): Fen = withContext(engineContext) {
+        logEvent("getMove $fen")
+
+        stateStream.awaitReady()
+        moveCompletable = CompletableDeferred()
+
+        bridge.writeLine(EngineCommand.SetPosition(fen).toString())
+        bridge.writeLine(EngineCommand.GoDepth(currentParams.depth).toString())
+
+        moveCompletable!!.await().also {
+            logEvent("getMove resp $it")
         }
     }
 
-    private inline fun <reified T : State> assertStateOrNull(): T? {
-        return stateFlow.value as? T
-    }
-
-    private suspend inline fun <reified T : State> awaitState() {
-        stateFlow.takeWhile { it !is T }.collect()
-    }
-
-    private suspend fun moveToState(state: State) {
-        stateFlow.emit(state)
-    }
-
-    private sealed interface State {
-        @Keep
-        object Uninitialized : State
-
-        @Keep
-        class Moving(
-            val completable: CompletableDeferred<String>,
-        ) : State
-
-        @Keep
-        object Ready : State
+    private fun logEvent(message: String) {
+        Log.d("StockFishEngine", message)
     }
 
     companion object {

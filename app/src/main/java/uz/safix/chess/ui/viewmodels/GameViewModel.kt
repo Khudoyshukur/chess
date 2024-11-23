@@ -29,8 +29,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import uz.kjuraev.engine.DifficultyLevel
 import uz.safix.chess.model.ChessPiece
-import uz.safix.chess.model.DifficultyLevel
 import uz.safix.chess.model.defaultBoardState
 import uz.safix.chess.model.toBoardSquareState
 import uz.safix.chess.service.ChessEngineService

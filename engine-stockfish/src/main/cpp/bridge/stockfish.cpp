@@ -29,7 +29,12 @@ int pipes[2][2];
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_uz_safix_engine_1stockfish_AndroidStockfishJni_main(JNIEnv *env, jobject thiz, int threadCount) {
+Java_uz_safix_engine_1stockfish_AndroidStockfishJni_main(
+        JNIEnv *env,
+        jobject thiz,
+        int threadCount,
+        int skillLevel
+) {
     pipe(pipes[PARENT_READ_PIPE]);
     pipe(pipes[PARENT_WRITE_PIPE]);
 
@@ -43,6 +48,8 @@ Java_uz_safix_engine_1stockfish_AndroidStockfishJni_main(JNIEnv *env, jobject th
     CommandLine::init();
 
     UCI::init(Options);
+    Options["Skill Level"] << UCI::Option(skillLevel, 0, 20);
+
     Tune::init();
     PSQT::init();
     Bitboards::init();
@@ -89,7 +96,8 @@ Java_uz_safix_engine_1stockfish_AndroidStockfishJni_readLine(JNIEnv *env, jobjec
 
 extern "C"
 JNIEXPORT jboolean JNICALL
-Java_uz_safix_engine_1stockfish_AndroidStockfishJni_write(JNIEnv *env, jobject /*thisz*/, jstring command) {
+Java_uz_safix_engine_1stockfish_AndroidStockfishJni_write(JNIEnv *env, jobject /*thisz*/,
+                                                          jstring command) {
     debug("IN: %s", env->GetStringUTFChars(command, JNI_FALSE));
 
     const char *nativeString = env->GetStringUTFChars(command, JNI_FALSE);

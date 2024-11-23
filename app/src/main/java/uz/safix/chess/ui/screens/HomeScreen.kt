@@ -27,8 +27,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.github.bhlangonijr.chesslib.Side
+import uz.kjuraev.engine.DifficultyLevel
 import uz.safix.chess.R
-import uz.safix.chess.model.DifficultyLevel
 import uz.safix.chess.ui.components.ChooseChessOptionsDialog
 
 /**
@@ -67,26 +67,18 @@ fun HomeScreen(
     }
 
     if (showDifficultyLevelDialog) {
-        val options = listOf(
-            stringResource(R.string.easy),
-            stringResource(R.string.middle),
-            stringResource(R.string.hard),
-            stringResource(R.string.extra_hard),
-        )
+        val options = List(DifficultyLevel.values().size) { index ->
+            stringResource(R.string.level_n, index + 1)
+        }
         ChooseChessOptionsDialog(
             options = options,
             title = stringResource(R.string.choose_difficulty_and_side),
             confirmTxt = stringResource(R.string.choose),
             onDismissed = { showDifficultyLevelDialog = false },
             onOptionSelected = { levelTxt, side ->
-                val level = when (options.indexOf(levelTxt)) {
-                    0 -> DifficultyLevel.EASY
-                    1 -> DifficultyLevel.MIDDLE
-                    2 -> DifficultyLevel.HARD
-                    3 -> DifficultyLevel.EXTRA_HARD
-                    else -> null
-                }
-                level?.let { onPlayWithComputer(it, side) }
+                val index = options.indexOf(levelTxt)
+                val level = DifficultyLevel.values()[index]
+                onPlayWithComputer(level, side)
             }
         )
     }
