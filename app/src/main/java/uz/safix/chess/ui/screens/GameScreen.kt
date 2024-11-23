@@ -9,9 +9,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
@@ -46,6 +49,7 @@ fun GameScreen(
     val userPlayingWithWhite by remember { derivedStateOf { viewModel.userPlayingWithWhite } }
     val difficultyLevel by remember { derivedStateOf { viewModel.level } }
     val clickHandler: (Int) -> Unit = remember { { viewModel.onClick(it, null) } }
+    var showGameEndDialog by remember { mutableStateOf(false) }
 
     MainScreen(
         squareStates = squareStates,
@@ -55,8 +59,15 @@ fun GameScreen(
         onClick = clickHandler
     )
 
-    if (gameResult != GameResult.ONGOING) {
+    LaunchedEffect(gameResult != GameResult.ONGOING) {
+        if (gameResult != GameResult.ONGOING) {
+            showGameEndDialog = true
+        }
+    }
+
+    if (showGameEndDialog) {
         GameResultDialog(gameResult = gameResult) {
+            showGameEndDialog = false
             onFinished()
         }
     }

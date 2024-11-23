@@ -67,17 +67,6 @@ fun ChessBoard(
     }
 }
 
-
-@Composable
-private fun Main(
-    modifier: Modifier = Modifier,
-    userPlayingWithWhite: Boolean,
-    states: List<BoardSquareState>,
-    onClick: (index: Int) -> Unit = {}
-) {
-
-}
-
 @Composable
 fun NumbersColumn(userPlayingWithWhite: Boolean) {
     val numbers by remember {

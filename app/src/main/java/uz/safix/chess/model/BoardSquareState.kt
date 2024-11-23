@@ -17,4 +17,5 @@ data class BoardSquareState(
     val isKingAttacked: Boolean = false,
     val movedFrom: Boolean = false,
     val movedTo: Boolean = false,
+    val isPossibleMove: Boolean = false,
 )

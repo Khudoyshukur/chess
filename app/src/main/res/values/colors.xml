@@ -17,4 +17,5 @@
     <color name="engine_move_from">#99FF9800</color>
     <color name="engine_move_to">#FF9800</color>
     <color name="king_attacked">#F00000</color>
+    <color name="possible_move_empty">#E6FF9800</color>
 </resources>

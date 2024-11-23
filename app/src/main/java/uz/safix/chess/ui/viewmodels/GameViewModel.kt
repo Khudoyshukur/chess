@@ -1,10 +1,11 @@
 package uz.safix.chess.ui.viewmodels
 
+import android.content.Context
+import android.media.MediaPlayer
 import android.os.Handler
 import android.os.Looper
 import android.os.Message
 import android.os.Messenger
-import android.util.Log
 import androidx.core.os.bundleOf
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -17,19 +18,22 @@ import com.github.bhlangonijr.chesslib.Square
 import com.github.bhlangonijr.chesslib.game.GameResult
 import com.github.bhlangonijr.chesslib.move.Move
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import uz.kjuraev.engine.DifficultyLevel
+import uz.safix.chess.R
 import uz.safix.chess.model.ChessPiece
 import uz.safix.chess.model.defaultBoardState
 import uz.safix.chess.model.toBoardSquareState
@@ -43,8 +47,11 @@ import javax.inject.Inject
  * Email: Khudoyshukur.Juraev.001@mail.ru
  */
 
+private val castleMoves = setOf("e1g1", "e1c1", "e8g8", "e8c8")
+
 @HiltViewModel
 class GameViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val side: Side = Side.valueOf(checkNotNull(savedStateHandle["side"]))
@@ -58,19 +65,30 @@ class GameViewModel @Inject constructor(
     private val _selectedSquareIndexStream = MutableStateFlow<Int?>(null)
     private val _lastMoveStream = MutableStateFlow<Move?>(null)
     private val _kingAttackedIndexStream = MutableStateFlow<Int?>(null)
+    private val possibleMovesStream: Flow<Set<Int>> = _selectedSquareIndexStream.map { index ->
+        if (index == null) {
+            setOf()
+        } else {
+            board.legalMoves().filter { it.from.ordinal == index }
+                .map { it.to.ordinal }
+                .toSet()
+        }
+    }
 
     val squareStatesStream = combine(
         _squareStatesStream,
         _selectedSquareIndexStream,
         _lastMoveStream,
         _kingAttackedIndexStream,
-    ) { squareStates, selectedSquareIndex, lastMove, kingAttackedIndex ->
+        possibleMovesStream
+    ) { squareStates, selectedSquareIndex, lastMove, kingAttackedIndex, possibleMoves ->
         squareStates.mapIndexed { index, square ->
             square.copy(
                 isSelectedForMove = selectedSquareIndex == index,
                 isKingAttacked = kingAttackedIndex == index,
                 movedFrom = lastMove?.from?.ordinal == index,
-                movedTo = lastMove?.to?.ordinal == index
+                movedTo = lastMove?.to?.ordinal == index,
+                isPossibleMove = possibleMoves.contains(index)
             )
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, defaultBoardState)
@@ -79,8 +97,6 @@ class GameViewModel @Inject constructor(
     val gameResultStream get() = _gameResultStream.asStateFlow()
 
     private val messengerStream = MutableStateFlow<Messenger?>(null)
-    private val botMoves = MutableSharedFlow<String>()
-
     private val messengerHandler = Handler(Looper.getMainLooper()) {
         val move = it.data.getString(ChessEngineService.BUNDLE_MOVE)
         viewModelScope.launch { move?.let { moveByEngine(move) } }
@@ -93,6 +109,7 @@ class GameViewModel @Inject constructor(
 
     init {
         initGame()
+        playStartGame()
     }
 
     private fun initGame() = viewModelScope.launch {
@@ -143,11 +160,11 @@ class GameViewModel @Inject constructor(
 
         return when (side) {
             Side.WHITE -> {
-                return selectedIndex in 48..55 && indexToClick in 56..63
+                selectedIndex in 48..55 && indexToClick in 56..63
             }
 
             Side.BLACK -> {
-                return selectedIndex in 8..15 && indexToClick in 0..7
+                selectedIndex in 8..15 && indexToClick in 0..7
             }
         }
     }
@@ -205,8 +222,20 @@ class GameViewModel @Inject constructor(
         if (move in board.legalMoves()) {
             val moved = board.doMove(move)
             if (moved) {
+                val movingPiece = squareStatesStream.value[move.from.ordinal].piece
+                playMoveAudio(
+                    isCaptured = squareState.piece != null,
+                    isCastle = move.toString() in castleMoves && movingPiece in setOf(
+                        ChessPiece.WhiteKing,
+                        ChessPiece.BlackKing
+                    ),
+                    isPromote = move.promotion != Piece.NONE
+                )
+
                 updateStateFromBoard()
             }
+        } else {
+            playIllegalMove()
         }
         _selectedSquareIndexStream.emit(null)
 
@@ -227,7 +256,9 @@ class GameViewModel @Inject constructor(
                 Side.BLACK -> _gameResultStream.emit(GameResult.WHITE_WON)
                 null -> _gameResultStream.emit(GameResult.BLACK_WON)
             }
-        }
+        } else {
+            null
+        }?.let { playEndGame() }
     }
 
     private suspend fun enqueueEngineMove() {
@@ -235,34 +266,110 @@ class GameViewModel @Inject constructor(
         getEngineMove(messenger, board.fen)
     }
 
-    private suspend fun moveByEngine(move: String) {
+    private suspend fun moveByEngine(move: String) = try {
         val newMove = Move(move, side.flip())
 
         if (newMove in board.legalMoves() && board.sideToMove == side.flip()) {
             val moved = board.doMove(newMove)
             if (moved) {
+                val movingPiece = squareStatesStream.value[newMove.from.ordinal].piece
+                playMoveAudio(
+                    isCaptured = squareStatesStream.value[newMove.to.ordinal].piece != null,
+                    isCastle = newMove.toString() in castleMoves && movingPiece in setOf(
+                        ChessPiece.WhiteKing,
+                        ChessPiece.BlackKing
+                    ),
+                    isPromote = newMove.promotion != Piece.NONE
+                )
                 updateStateFromBoard()
             }
         }
 
         checkGameOver()
+    } catch (t: Throwable) {
+        t.printStackTrace()
     }
 
-    private suspend fun getEngineMove(messenger: Messenger, fen: String): String? {
+    private fun getEngineMove(messenger: Messenger, fen: String) {
         val message = Message.obtain(null, ChessEngineService.MSG_GET_MOVE)
         message.data = bundleOf(ChessEngineService.BUNDLE_FEN to fen)
         message.replyTo = Messenger(messengerHandler)
         messenger.send(message)
-
-        return botMoves.firstOrNull()
     }
 
     fun setMessenger(messenger: Messenger?) = viewModelScope.launch {
         messengerStream.emit(messenger)
     }
 
+    private fun playMoveAudio(
+        isCaptured: Boolean,
+        isCastle: Boolean,
+        isPromote: Boolean
+    ) = viewModelScope.launch(Dispatchers.IO) {
+        try {
+            val audio = if (board.isKingAttacked) {
+                R.raw.move_check
+            } else if (isCaptured) {
+                R.raw.capture
+            } else if (isCastle) {
+                R.raw.castle
+            } else if (isPromote) {
+                R.raw.promote
+            } else {
+                R.raw.move
+            }
+            MediaPlayer.create(appContext, audio).also { player ->
+                player.start()
+                player.setOnCompletionListener {
+                    it.release()
+                }
+            }
+        } catch (e: Throwable) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun playStartGame() = viewModelScope.launch(Dispatchers.IO) {
+        try {
+            MediaPlayer.create(appContext, R.raw.game_start).also { player ->
+                player.start()
+                player.setOnCompletionListener {
+                    it.release()
+                }
+            }
+        } catch (e: Throwable) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun playEndGame() = viewModelScope.launch(Dispatchers.IO) {
+        try {
+            MediaPlayer.create(appContext, R.raw.game_end).also { player ->
+                player.start()
+                player.setOnCompletionListener {
+                    it.release()
+                }
+            }
+        } catch (e: Throwable) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun playIllegalMove() = viewModelScope.launch(Dispatchers.IO) {
+        try {
+            MediaPlayer.create(appContext, R.raw.illegal).also { player ->
+                player.start()
+                player.setOnCompletionListener {
+                    it.release()
+                }
+            }
+        } catch (e: Throwable) {
+            e.printStackTrace()
+        }
+    }
+
     companion object {
-        private val bestStartingMoves =
-            listOf("e2e4", "d2d4", "g1f3", "c2c4", "b1c3", "b2b3", "g2g3")
+//        private val bestStartingMoves =
+//            listOf("e2e4", "d2d4", "g1f3", "c2c4", "b1c3", "b2b3", "g2g3")
     }
 }
