@@ -2,7 +2,7 @@ package uz.safix.chess.ui.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.colorResource
@@ -66,9 +67,11 @@ fun ChessBoardSquare(
             .aspectRatio(1f)
             .onGloballyPositioned { squareSize = it.size }
             .background(colorResource(squareColor))
-            .clickable(enabled = true, onClick = {
-                 onClick(state.index)
-            }),
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = { onClick(state.index) }
+                )
+            },
     ) {
         state.piece?.let {
             Image(

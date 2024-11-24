@@ -65,15 +65,17 @@ class GameViewModel @Inject constructor(
     private val _selectedSquareIndexStream = MutableStateFlow<Int?>(null)
     private val _lastMoveStream = MutableStateFlow<Move?>(null)
     private val _kingAttackedIndexStream = MutableStateFlow<Int?>(null)
-    private val possibleMovesStream: Flow<Set<Int>> = _selectedSquareIndexStream.map { index ->
-        if (index == null) {
-            setOf()
-        } else {
-            board.legalMoves().filter { it.from.ordinal == index }
-                .map { it.to.ordinal }
-                .toSet()
+    private val possibleMovesStream: Flow<Set<Int>> = _selectedSquareIndexStream
+        .combine(_lastMoveStream, ::Pair)
+        .map { (index, _) ->
+            if (index == null) {
+                setOf()
+            } else {
+                board.legalMoves().filter { it.from.ordinal == index }
+                    .map { it.to.ordinal }
+                    .toSet()
+            }
         }
-    }
 
     val squareStatesStream = combine(
         _squareStatesStream,
@@ -155,7 +157,11 @@ class GameViewModel @Inject constructor(
         if (selectedIndex !in 0..63) return false
 
         val squareState = squareStatesStream.value[selectedIndex]
-        if (squareState.piece == null || squareState.piece !in setOf(ChessPiece.WhitePawn, ChessPiece.BlackPawn)) return false
+        if (squareState.piece == null || squareState.piece !in setOf(
+                ChessPiece.WhitePawn,
+                ChessPiece.BlackPawn
+            )
+        ) return false
         if (squareState.piece.side != side) return false
 
         return when (side) {
@@ -174,14 +180,9 @@ class GameViewModel @Inject constructor(
             _showPromotionDialogForIndex.emit(clickedIndex)
             return@launch
         }
-
         if (promotion != null) _showPromotionDialogForIndex.emit(null)
 
-        if (board.isMated || board.isDraw) return@launch
         if (clickedIndex !in 0..63) return@launch
-        if (board.sideToMove != side) return@launch
-
-        _lastMoveStream.emit(null)
 
         val currentSelectedIndex = _selectedSquareIndexStream.value
         if (clickedIndex == currentSelectedIndex) {
@@ -190,13 +191,18 @@ class GameViewModel @Inject constructor(
         }
 
         val squareState = squareStatesStream.value[clickedIndex]
-        if (currentSelectedIndex == null) {
-            if (squareState.piece != null) {
-                _selectedSquareIndexStream.emit(clickedIndex)
-            }
-
+        if (
+            currentSelectedIndex == null ||
+            squareStatesStream.value.getOrNull(currentSelectedIndex)?.piece == null
+        ) {
+            _selectedSquareIndexStream.emit(clickedIndex)
             return@launch
         }
+
+        if (board.isMated || board.isDraw) return@launch
+        if (board.sideToMove != side) return@launch
+
+        _lastMoveStream.emit(null)
 
         if (
             squareState.piece?.side != null &&
@@ -256,9 +262,7 @@ class GameViewModel @Inject constructor(
                 Side.BLACK -> _gameResultStream.emit(GameResult.WHITE_WON)
                 null -> _gameResultStream.emit(GameResult.BLACK_WON)
             }
-        } else {
-            null
-        }?.let { playEndGame() }
+        }
     }
 
     private suspend fun enqueueEngineMove() {
@@ -307,17 +311,20 @@ class GameViewModel @Inject constructor(
         isPromote: Boolean
     ) = viewModelScope.launch(Dispatchers.IO) {
         try {
-            val audio = if (board.isKingAttacked) {
-                R.raw.move_check
-            } else if (isCaptured) {
-                R.raw.capture
-            } else if (isCastle) {
-                R.raw.castle
-            } else if (isPromote) {
-                R.raw.promote
-            } else {
-                R.raw.move
-            }
+            val audio =
+                if (board.isMated || board.isStaleMate || board.isRepetition || board.isDraw) {
+                    R.raw.game_end
+                } else if (board.isKingAttacked) {
+                    R.raw.move_check
+                } else if (isCaptured) {
+                    R.raw.capture
+                } else if (isCastle) {
+                    R.raw.castle
+                } else if (isPromote) {
+                    R.raw.promote
+                } else {
+                    R.raw.move
+                }
             MediaPlayer.create(appContext, audio).also { player ->
                 player.start()
                 player.setOnCompletionListener {
@@ -332,19 +339,6 @@ class GameViewModel @Inject constructor(
     private fun playStartGame() = viewModelScope.launch(Dispatchers.IO) {
         try {
             MediaPlayer.create(appContext, R.raw.game_start).also { player ->
-                player.start()
-                player.setOnCompletionListener {
-                    it.release()
-                }
-            }
-        } catch (e: Throwable) {
-            e.printStackTrace()
-        }
-    }
-
-    private fun playEndGame() = viewModelScope.launch(Dispatchers.IO) {
-        try {
-            MediaPlayer.create(appContext, R.raw.game_end).also { player ->
                 player.start()
                 player.setOnCompletionListener {
                     it.release()
